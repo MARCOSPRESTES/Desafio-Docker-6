@@ -2,6 +2,7 @@ version: '3.9'
 
 volumes:
   review_vol:
+  movie_vol:
  
 
 networks:
@@ -10,30 +11,7 @@ networks:
 
 services:
 
-  movies:
-    image: marc2play/movie:v1
-    restart: always
-    networks:
-      - micronet
-    ports:
-      - 8181:8181
-    depends_on:
-      - mongo_movies_db
-    environment:
-      MONGODB_URI: mongodb://mongouser:mongopwd@mongo_movies_db:27017/admin
-
-  mongo_movies_db:
-    image: mongo:4.4.3
-    restart: always
-    ports:
-      - 27017:27017
-    networks:
-      - micronet
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: mongouser
-      MONGO_INITDB_ROOT_PASSWORD: mongopwd
-
-  psg_db:
+  postgres_review_db:
     image: postgres:14.1
     restart: always
     networks:
@@ -47,13 +25,36 @@ services:
       - POSTGRES_PASSWORD=Pg@123
       - POSTGRES_DB=pguser
 
+  mongo_movies_db:
+    image: mongo:4.4.3
+    restart: always
+    ports:
+      - 27017:27017
+    networks:
+      - micronet
+    volumes:
+      - movie_vol:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongouser
+      MONGO_INITDB_ROOT_PASSWORD: mongopwd
+
+  movies:
+    image: marc2play/movie:v1
+    restart: always
+    networks:
+      - micronet
+    ports:
+      - 8181:8181
+    depends_on:
+      - mongo_movies_db
+    environment:
+      MONGODB_URI: mongodb://mongouser:mongopwd@mongo_movies_db:27017/admin
+
   review:
     image: marc2play/review:v1
     restart: always
     networks:
       - micronet
-    volumes:
-      - review_vol:/var/lib/postgresql/data
     ports:
       - 8080:80
     depends_on:
@@ -71,6 +72,8 @@ services:
     depends_on:
       - review
       - movies
+    volumes:
+      - movie_vol:/data/db
     environment:
       MOVIE_SERVICE_URI: http://movies:8181
       REVIEW_SERVICE_URI: http://review:80
