@@ -10,5 +10,5 @@ COPY . .
 
 EXPOSE 8181
 
-# Start script in package.json
+
 CMD [ "node", "server.js" ]
